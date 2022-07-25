@@ -1,0 +1,20 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "sns:ListOriginationNumbers",
+                "sns:ListEndpointsByPlatformApplication",
+                "sns:ListSubscriptionsByTopic",
+                "sns:Publish",
+                "sns:ListSMSSandboxPhoneNumbers",
+                "sns:ListTopics",
+                "sns:ListSubscriptions",
+                "sns:ListPlatformApplications"
+            ],
+            "Resource": "arn:aws:sns:us-east-1:11223344:emailNotify*"
+        }
+    ]
+}
