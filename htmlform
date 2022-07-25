@@ -1,0 +1,23 @@
+                <form action="https://ptbtel17z7.execute-api.us-east-1.amazonaws.com/test/emailform" method="post">
+                    <div class="form-group">
+                        <label>Your name</label>
+                        <input type="text" name="name" class="form-control">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Your email</label>
+                        <input type="email" name="email" class="form-control">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <input type="text" name="subject" class="form-control">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <textarea rows = "5" cols = "60" name = "message">Enter your message</textarea>
+                    </div>
+                    <div class="form-group">
+                        <input type="submit" class="btn btn-primary" value="Send message">
+                    </div>
+                </form>
