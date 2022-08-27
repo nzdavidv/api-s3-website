@@ -3,11 +3,12 @@ service cron start
 systemctl enable cron
 chown www /var/www/html
 
+echo "enter mysql root password"; read mpasswd
 mysql_secure_installation <<EOF
 
 y
-secret
-secret
+${mpasswd}
+${mpasswd}
 y
 y
 y
