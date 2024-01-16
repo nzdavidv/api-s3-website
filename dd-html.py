@@ -12,7 +12,8 @@ htmlbase=''
 htmlend1=''
 htmlend3=''
 
-#table1 is users table with username, passhash pairs
+#two tables.. 'devnames' has friendly names for each mac address
+#and 'temps' which has the temperature data.
 dynamodb1 = boto3.resource('dynamodb')
 devnamestable = dynamodb1.Table('devnames')
 tempstable = dynamodb1.Table('temps')
@@ -29,10 +30,13 @@ class DecimalEncoder(json.JSONEncoder):
                 return int(o)
         return super(DecimalEncoder, self).default(o)
 
-
+#devicearray is used to store the mac address to name pairs.
 devicearray = dict()
 
 def displaysummary():
+    #this function returns the summary information (this function is called with GET and no parameters)
+
+    #html for the table
     localhtmlout='''
 <table style="width:100%">
 <tr>
@@ -45,6 +49,7 @@ def displaysummary():
 </tr>
 '''
 
+    #javascript for the form create and submit buttons
     javascr='''
 <script>
     function formSubmit(devmac, dirdate, measure) {
@@ -74,16 +79,21 @@ def displaysummary():
 </script>
 '''
 
+    #iterate on full table scan for devnamestable.. it's a small table with device and friendly names.
     response1 = devnamestable.scan()
     localhtmlout = localhtmlout + javascr
     for j in response1['Items']:
         macaddr=j['macaddr']
         devname=j['devname']
-        #devicearray[macaddr]=devname
-        
+
+        #this has hard-coded in 12 hours adjustment from UTC for NZ which is probably a bad idea and
+        #won't correct for daylight saving time. Fortunately i'm unlikely to want temp data at midnight.
+        #so I don't really care. ..but yep, backlog to fix timezone.
         tnow = datetime.now(timezone.utc) + timedelta(hours=12)
         dirdate = tnow.strftime("%d-%m-%Y")
-        print("debug_dispSummary_dirdate: ", dirdate)
+        #print("debug_dispSummary_dirdate: ", dirdate)
+        
+        #now the main temp query table for today (dirdate) for the device.
         response3 = tempstable.query(
             KeyConditionExpression='datestr = :datestr',
             FilterExpression='macaddr = :macaddr',
@@ -92,6 +102,8 @@ def displaysummary():
                 ':macaddr': macaddr
             }
         )
+        # the purpose of the next part is to get the latest temp / humidity / battery reading.
+        # there must be a better way but it works..
         devtemps = dict()
         devhum = dict()
         devbattery = dict()
@@ -103,6 +115,9 @@ def displaysummary():
             unixtime=m['datetime']
             try:
                 timelabel=m['timestr']
+                # this is a 'try' because earlier version of the send-to-aws script didn't include
+                # the timestr. I was going to work it out from 'datetime' unix epoch thing but
+                # blurg.. too hard.
             except:
                 timelabel=''
             devtemps[unixtime] = temp
@@ -126,16 +141,15 @@ def displaysummary():
             localhtmlout = localhtmlout + bc + "'" + macaddr + "','" + dirdate + be + " humidity</button>"
             localhtmlout = localhtmlout + bc + "'" + macaddr + "','" + dirdate + bf + " battery</button>"
             localhtmlout = localhtmlout + "</td></tr>\n"
-
+            #the break means the loop around times stops after the first one.. giving only the latest time.
             break
 
-    #for dev in devicearray:
-    #    localhtmlout = localhtmlout + dev + " " + devicearray[dev] + "<br>"
     localhtmlout = localhtmlout + "</table>\n"
     return localhtmlout
     
 
 def lambda_handler(event, context):
+    #htmlbase below is the starting code for the temp/battery/humidity graph.
     htmlbase = ''' 
 <!doctype html>
 <html lang="en">
@@ -180,7 +194,10 @@ def lambda_handler(event, context):
     try:
         htmlout=''
         form_data=str(event['body'])
-        #content_type = event["headers"]["Content-Type"]
+        #this fails if the program is called with GET instead of POST with parameters.. 
+        #hence the try
+        
+        #form comes through as base64 encoded.
         body_dec = base64.b64decode(form_data).decode('utf-8')
         form_list = str(body_dec).split("&")
         print(str(form_list))
@@ -195,14 +212,15 @@ def lambda_handler(event, context):
         measure=formparams['measure']
 
     except:
+        #if getting the form params failed then display a summary page.
         measure='summary'
         dirdate=''
         devmac=''
         htmlout=displaysummary()
 
-    if dirdate == "":
-        tnow = datetime.now(gettz("UTC"))
-        dirdate = tnow.strftime("%d-%m-%Y")
+    #if dirdate == "":
+    #    tnow = datetime.now(gettz("UTC"))
+    #    dirdate = tnow.strftime("%d-%m-%Y")
         
     print('devmac ', devmac) 
     print('dirdate ', dirdate)  
@@ -214,7 +232,7 @@ def lambda_handler(event, context):
         devname=j['devname']
         devicearray[macaddr]=devname
         
-    
+    # for temps & humidity make a daily graph
     if measure == "temps" or measure == "humidity":
         htmlend2 = "       title: ' " + measure + " in " + devicearray[devmac] + " " + devmac + " for " + dirdate + "'"
         response5 = tempstable.query(
@@ -232,8 +250,6 @@ def lambda_handler(event, context):
             if measure == "humidity":
                 value=k['humidity']
             ddmacaddr=k['macaddr']
-            #"datestr": { "S": "13-01-2024"
-            #"timestr": { "S": "18:00:33"
             datedisp=k['datestr']
             dyear=datedisp.split('-')[2]
             dmonth=datedisp.split('-')[1]
@@ -253,8 +269,10 @@ def lambda_handler(event, context):
             #print("debug_devmac: ", ddmacaddr)
     
     if measure == "battery":
+        #for battery graph we want the last 5 days.
         htmlend2 = "       title: ' " + measure + " in " + devicearray[devmac] + " " + devmac + "'"
         daysago=-5
+        #iterate through each of the last 5 days.
         while daysago < 0:
             xdaysago = datetime.now(timezone.utc) + timedelta(days=daysago)
             dirdate = xdaysago.strftime("%d-%m-%Y")
@@ -290,22 +308,20 @@ def lambda_handler(event, context):
             daysago += 1
         
     if measure == "summary":
+        #htmlbase to make the summary page not-ugly
         htmlbase = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>nzvink.com - tech blog</title>
+<title>nzvink.com - IOT stuff</title>
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <meta content="Free Website Template" name="keywords">
 <meta content="Free Website Template" name="description">
 
 <link href="https://nzvink-public.s3.amazonaws.com/img/favicon.ico" rel="icon">
-
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:300;400;600;700;800&display=swap" rel="stylesheet">
-
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
-
 <link href="https://nzvink-public.s3.amazonaws.com/style.css" rel="stylesheet">
 </head>
 <body>
@@ -367,5 +383,4 @@ def lambda_handler(event, context):
             "Content-Type": "text/html"
         },
         "body": htmlbase + htmlout + htmlend1 + htmlend2 + htmlend3
-        #"body": htmlout
     }
