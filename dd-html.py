@@ -184,7 +184,6 @@ def lambda_handler(event, context):
   <body>
     <div id="line_chart" style=" height: 600px" ></div>
 
-   <a href="https://iot.nzvink.com">iot</a>
 </body>
 </html>
 '''
@@ -314,12 +313,11 @@ def lambda_handler(event, context):
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>nzvink.com - IOT stuff</title>
+<title>IOT stuff</title>
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <meta content="Free Website Template" name="keywords">
 <meta content="Free Website Template" name="description">
 
-<link href="https://nzvink-public.s3.amazonaws.com/img/favicon.ico" rel="icon">
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:300;400;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
 <link href="https://nzvink-public.s3.amazonaws.com/style.css" rel="stylesheet">
@@ -329,7 +327,7 @@ def lambda_handler(event, context):
         <div class="wrapper">
             <div class="sidebar">
                 <div class="sidebar-text d-flex flex-column h-100 justify-content-center text-center">
-                    <img class="mx-auto d-block w-75 bg-primary img-fluid rounded-circle mb-4 p-3" src="https://nzvink-public.s3.amazonaws.com/img/profile.jpg" alt="Image">
+                    <img class="mx-auto d-block w-75 bg-primary img-fluid rounded-circle mb-4 p-3" src="https://uxwing.com/wp-content/themes/uxwing/download/internet-network-technology/iot-icon.png" alt="Image">
                     <h1 class="font-weight-bold">IoT</h1>
                     <p class="mb-4">
                         Home IoT sensors
@@ -337,13 +335,13 @@ def lambda_handler(event, context):
                     <div class="d-flex justify-content-center mb-5">
                         <a class="btn btn-outline-primary mr-2" href="https://twitter.com/awscloud"><i class="fab fa-twitter"></i></a>
                         <a class="btn btn-outline-primary mr-2" href="https://www.facebook.com/groups/ToyotaMR2Spyder/"><i class="fab fa-facebook-f"></i></a>
-                        <a class="btn btn-outline-primary mr-2" href="https://www.linkedin.com/in/davidvink/"><i class="fab fa-linkedin-in"></i></a>
-                        <a class="btn btn-outline-primary mr-2" href="https://github.com/nzdavidv/"><i class="fab fa-github"></i></a>
+                        <a class="btn btn-outline-primary mr-2" href="https://www.linkedin.com/"><i class="fab fa-linkedin-in"></i></a>
+                        <a class="btn btn-outline-primary mr-2" href="https://github.com/"><i class="fab fa-github"></i></a>
                     </div>
                 <div>    
                     <h4 class="mb-3 font-weight-bold">welcome</h4>
                 </div>
-                    <a href="https://iot.nzvink.com" class="btn btn-lg btn-block btn-primary mt-auto">IoT Temperatures</a>
+                    <a class="btn btn-lg btn-block btn-primary mt-auto">IoT Temperatures</a>
                 </div>
                 <div class="sidebar-icon d-flex flex-column h-100 justify-content-center text-right">
                     <i class="fas fa-2x fa-angle-double-right text-primary"></i>
