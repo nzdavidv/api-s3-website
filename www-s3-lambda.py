@@ -22,28 +22,57 @@ def readhtmlfile(filename):
     return html
     
 def readbinfile(filename):
-    filehand = s3.Object(bucketname,filename)
-    file_byte_string = filehand.get()['Body'].read()
-    return Image.open(BytesIO(file_byte_string))
+    s3obj = s3.Object(bucketname,filename)
+    filehandle = s3obj.get()['Body'].read()
+    filebytes = BytesIO(filehandle).getvalue()
+    return filebytes
 
 def lambda_handler(event, context):
     
     filereq = event['rawPath']
     filereqn=filereq[1:]
+    base64line=""
     if ('.htm' in filereq) or ('.js' in filereq):
         reads3out=readhtmlfile(filereqn)
         html=reads3out
+        return {
+            "statusCode": 200,
+            'headers': { 'Content-Type': 'text/html' },
+            'body': html
+        }
+    elif ('.jpg' in filereq) or ('.jpeg' in filereq):
+        reads3out=readbinfile(filereqn) 
+        html=reads3out
+        return {
+            "statusCode": 200,
+            'headers': { 'Content-Type': 'image/jpg' },
+            'body': base64.b64encode(html),
+            'isBase64Encoded': True
+        }
+    elif ('.PDF' in filereq) or ('.pdf' in filereq):
+        reads3out=readbinfile(filereqn) 
+        html=reads3out
+        return {
+            "statusCode": 200,
+            'headers': { 'Content-Type': 'application/pdf' },
+            'body': base64.b64encode(html),
+            'isBase64Encoded': True
+        }
     else:
         if filereqn == "":
             reads3out=readhtmlfile('index.html')
             html=reads3out
+            return {
+                "statusCode": 200,
+                'headers': { 'Content-Type': 'text/html' },
+                'body': html
+            }
         else:
+            #reads3out=readbinfile(filereqn)
+            reads3out=readhtmlfile(filereqn)
             html=reads3out
-            
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Content-Type": "text/html"
-        },
-        "body": html
-    }
+            return {
+                "statusCode": 200,
+                'headers': { 'Content-Type': 'text/html' },
+                'body': html
+            }
