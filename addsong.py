@@ -15,7 +15,7 @@ import re
 #return 0
 
 #s3 = boto3.resource('s3')
-bucketname = os.environ['UploadBucket']
+bucketname = os.environ['BUCKETNAME']
 #bucket = s3.Bucket(bucketname)
 
 
@@ -23,7 +23,9 @@ masterpasswd = os.environ['MPASSWD']
 dbname = os.environ['DATABASE']
 addsongapi = os.environ['ADDSONGAPI']
 songlistapi = os.environ['SONGLISTAPI']
-s3url = os.environ['S3URL']
+
+#s3url = os.environ['S3URL']  # https://nzvink-reach-int-dev.s3.amazonaws.com/         nzvink-reach-int-dev
+s3url = "https://" + bucketname + ".s3.amazonaws.com/"
 
 
 dynamodb1 = boto3.resource('dynamodb')
