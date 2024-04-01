@@ -23,6 +23,7 @@ masterpasswd = os.environ['MPASSWD']
 dbname = os.environ['DATABASE']
 addsongapi = os.environ['ADDSONGAPI']
 songlistapi = os.environ['SONGLISTAPI']
+max_file_size = os.environ['MAXFILESIZEBYTES']
 
 #s3url = os.environ['S3URL']  # https://nzvink-reach-int-dev.s3.amazonaws.com/         nzvink-reach-int-dev
 s3url = "https://" + bucketname + ".s3.amazonaws.com/"
@@ -278,10 +279,13 @@ def lambda_handler(event, context):
             }
         )
 
-        
+        # 5242880 = 5mb
         form_data = s3_client.generate_presigned_post(
             Bucket= bucketname,
             Key= targetfilename,
+            Conditions=[
+                ["content-length-range", 10, max_file_size]
+            ],
             ExpiresIn = 3600)
         
         htmlformdata=''
@@ -289,15 +293,17 @@ def lambda_handler(event, context):
         for k, v in form_data['fields'].items():
             htmlformdata=htmlformdata + '             <input type="hidden" name="' + k + '" value="' + v + '" />\n'
         
+        htmlfilesize="                <br><h4>&nbsp;&nbsp;Select file to upload (max " + str(float(max_file_size) / 1024) + " kb) </h4>"
+        
         htmlend='''<br>
-                <input type="file"   name="file" /> 
-                <br>
-                <input type="submit" name="submit" value="Upload to object storage" />
+                &nbsp;&nbsp;<input type="file"   name="file" /> 
+                <br><br>
+                &nbsp&nbsp;<input type="submit" name="submit" value="Upload to object storage" />
             </form>
             
         '''
             
-        html = htmlstart + formstart1 + htmlformdata + htmlend + songlistlogin1 + songlistapi + songlistlogin2 + masterpasswd + songlistlogin3 + htmldebug + '<br></html>'
+        html = htmlstart + formstart1 + htmlformdata + htmlfilesize + htmlend + songlistlogin1 + songlistapi + songlistlogin2 + masterpasswd + songlistlogin3 + htmldebug + '<br></html>'
     
     elif ( formtype == 'editsongform'):
         esong=urllib.parse.unquote_plus(formparams['song'])
