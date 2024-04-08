@@ -7,6 +7,7 @@ import textwrap
 
 #s3 = boto3.resource('s3')
 bucketname = os.environ['BUCKETNAME']
+s3url = "https://" + bucketname + ".s3.amazonaws.com/"
 
 # Initialize boto3 to use the S3 client.
 s3_client = boto3.client('s3')
@@ -32,9 +33,9 @@ htmlstart='''
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     </head>
     <body>
-        <form action="https://nzvink-reach-int.s3.amazonaws.com/" method="post"
-              enctype="multipart/form-data">
 '''
+
+htmlformaction='<form action="' + s3url + '" method="post" \n enctype="multipart/form-data">'
 
 htmlend='''
             <input type="file"   name="file" /> <br />
@@ -45,7 +46,7 @@ htmlend='''
 
 def lambda_handler(event, context):
     htmlpsk=displaypsk()
-    html = htmlstart + htmlpsk + htmlend
+    html = htmlstart + htmlformaction + htmlpsk + htmlend
 
     return {
         'statusCode': 200,
