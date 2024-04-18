@@ -164,14 +164,14 @@ def editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, enotes):
                 <span class="help-block"></span>
             </div>
             <div class="form-group">
-                <label>Last played</label>
-                <input type="text" name="newsongkey" class="form-control" value="'''
+                <label>Key</label>
+                <input type="text" pattern="([A-G])([#b])?" name="newsongkey" class="form-control" title="Music notes ABCDEFG with optional # or b" value="'''
     
     modsong5='''">
                 <span class="help-block"></span>
             </div>
             <div class="form-group">
-                <label>Last played</label>
+                <label>Key difference from spotify</label>
                 <input type="text" name="newsongkeydiff" class="form-control" value="'''
     
     modsong6='''">
