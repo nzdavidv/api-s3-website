@@ -107,7 +107,7 @@ addsong2='''" method="post">
             </div>
             <div class="form-group">
                 <label>Key</label>
-                <input type="text" name="newsongkey" class="form-control">
+                <input type="text" pattern="([A-G])([#b])?" name="newsongkey" class="form-control" title="Music notes ABCDEFG with optional # or b">
                 <span class="help-block"></span>
             </div>
             <div class="form-group">
@@ -315,6 +315,19 @@ def lambda_handler(event, context):
         #html = htmlstart + "<br>song: " + esong + "<br>lastplayed: " + elastplayed + "<br>key: " + ekey + "<br>keydiff: " + ekeydiff + "<br>songsheet: " + esongsheet + "<br>notes: " + enotes
         htmledsong=editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, enotes)
         html=htmlstart + htmledsong
+
+    elif ( formtype == 'delsongform'):
+        delsong=urllib.parse.unquote_plus(formparams['song'])
+        delsongsheet=formparams['songsheet']
+        #html = htmlstart + "<br>song: " + esong + "<br>lastplayed: " + elastplayed + "<br>key: " + ekey + "<br>keydiff: " + ekeydiff + "<br>songsheet: " + esongsheet + "<br>notes: " + enotes
+        response = songtable.delete_item(
+        Key={
+            'Song': delsong,
+            'Songsheet': delsongsheet
+            }
+        )
+        htmldebug=json.dumps(response)
+        html=htmlstart  + songlistlogin1 + songlistapi + songlistlogin2 + masterpasswd + songlistlogin3 + htmldebug + '<br></html>'
         
     else:
         #html = htmlstart + str({textwrap.indent(input_fields, ' ' * 12)}) + htmlend
