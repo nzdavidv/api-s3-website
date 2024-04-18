@@ -163,7 +163,7 @@ def editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, enotes, eformnumber
 
             <button onclick="formSubmit'''
 
-    editsong3=''')"style="float: right; margin-right: 100px;">Edit</button>
+    editsong3=''')"style="margin-right: 10px;">Edit</button>
 '''
 
     editsongout="<script>\n function formSubmit" + str(eformnumber) + editsong1 + addsongapi + '" \n'
@@ -178,6 +178,50 @@ def editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, enotes, eformnumber
     editsongout= editsongout + editsong2 + str(eformnumber) + "(" + editsong3
     
     return editsongout
+    
+def delsong(esong, esongsheet, eformnumber):
+    #   song=j['Song']
+    #   lastplayed=j['Lastplayed']
+    #   key=j['Key']
+    #   keydiff=j['Keydiff']
+    #   songsheet=j['Songsheet']
+    #   notes=j['Notes']
+    
+    delsong1='''(password, song, songsheet ) {
+     var form = document.createElement("form");
+     var element1 = document.createElement("input");
+     element1.setAttribute("type", "hidden");
+     var element2 = document.createElement("input");
+     element2.setAttribute("type", "hidden");
+     var element3 = document.createElement("input");
+     element3.setAttribute("type", "hidden");
+     var element4 = document.createElement("input");
+     element4.setAttribute("type", "hidden");
+
+
+    
+     form.method = "POST";
+     form.action = "'''
+
+    delsong2='''
+     document.body.appendChild(form);
+     form.submit();
+    }
+</script>
+
+            <button onclick="formSubmit'''
+
+    delsong3=''')"style="margin-right: 10px;">Delete</button>
+'''
+
+    delsongout="<script>\n function formSubmit" + str(eformnumber) + delsong1 + addsongapi + '" \n'
+    delsongout= delsongout + '      element1.value="' + masterpasswd + '"\n      element1.name="password"; \n     form.appendChild(element1); \n'
+    delsongout= delsongout + '      element2.value="' + esong + '"\n     element2.name="song"; \n     form.appendChild(element2); \n'
+    delsongout= delsongout + '      element3.value="' + esongsheet + '"\n     element3.name="songsheet"; \n     form.appendChild(element3); \n'
+    delsongout= delsongout + '      element4.value="delsongform"\n     element4.name="formtype"; \n     form.appendChild(element4); \n'
+    delsongout= delsongout + delsong2 + str(eformnumber) + "(" + delsong3
+    
+    return delsongout
         
 def displaysummary(order):
     formnumber=3
@@ -267,7 +311,7 @@ def displaysummary(order):
         songid = songid + 1
     
     if ( order == "bydate" ):
-        songlistarray.sort(key=lambda songlistarray: songlistarray[1])
+        songlistarray.sort(reverse=True, key=lambda songlistarray: songlistarray[1])
     elif ( order == "bysong" ):
         songlistarray.sort(key=lambda songlistarray: songlistarray[0])
     elif ( order == "bykey" ):
@@ -302,9 +346,11 @@ def displaysummary(order):
         #editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, enotes, eformnumber):
         formnumber = formnumber + 1
         editsonghtml = editsong(song, lastplayed, key, keydiff, songsheet, notes, formnumber)
+        formnumber = formnumber + 1
+        delsonghtml = delsong(song, songsheet, formnumber)
         localhtmlout = localhtmlout + "<tr><td>" + bc + "'" + masterpasswd + "','" + songsheet + be + " songsheet</button>"
         localhtmlout = localhtmlout + "</td><td>" + song + "</td><td>" + lastplayed + "</td><td>" + key + "</td><td>" + keydiff + "</td><td>\n"
-        localhtmlout = localhtmlout + notes + "</td><td>" + editsonghtml + "</td></tr>\n"
+        localhtmlout = localhtmlout + notes + "</td><td>" + editsonghtml + "&nbsp;" + delsonghtml + "</td></tr>\n"
     
     localhtmlout = localhtmlout + "</table>" + htmlend
     
