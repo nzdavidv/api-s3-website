@@ -57,7 +57,8 @@ def lambda_handler(event, context):
     
     snsmessage="new webform contact\n"
     for p in formparams:
-        val=formparams[p]
+        #val=formparams[p]
+        val=urllib.parse.unquote_plus(formparams[p])
         snsmessage=snsmessage + p + " " + val + "\n"
         
     emailTopic=sns.Topic(arn="arn:aws:sns:us-east-1:392495242865:emailNotify")
