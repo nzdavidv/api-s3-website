@@ -10,9 +10,9 @@ import urllib.parse
 from array import array
 import textwrap
 import re
+from datetime import datetime, timezone, tzinfo
+from dateutil.tz import gettz
 
-#clag bail until I have password auth
-#return 0
 
 #s3 = boto3.resource('s3')
 bucketname = os.environ['BUCKETNAME']
@@ -21,6 +21,7 @@ bucketname = os.environ['BUCKETNAME']
 
 masterpasswd = os.environ['MPASSWD']
 dbname = os.environ['DATABASE']
+histdbname = os.environ['HISTDATABASE']
 addsongapi = os.environ['ADDSONGAPI']
 songlistapi = os.environ['SONGLISTAPI']
 max_file_size = os.environ['MAXFILESIZEBYTES']
@@ -31,6 +32,7 @@ s3url = "https://" + bucketname + ".s3.amazonaws.com/"
 
 dynamodb1 = boto3.resource('dynamodb')
 songtable = dynamodb1.Table(dbname)
+songhisttable = dynamodb1.Table(histdbname)
 
 #DecimalEncoder is needed for DynamoDB to work
 class DecimalEncoder(json.JSONEncoder):
@@ -120,6 +122,11 @@ addsong2='''" method="post">
                 <input type="text" name="newsongnotes" class="form-control">
                 <span class="help-block"></span>
             </div>
+            <div class="form-group">
+                <label>Summary</label>
+                <input type="text" name="newsongsummary" class="form-control">
+                <span class="help-block"></span>
+            </div>
 
 '''
 
@@ -139,7 +146,7 @@ htmlend='''
 </html>
 '''
 
-def editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, enotes):
+def editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, emp3file, enotes, esummary):
     modsong1='''
     <div class="content">
         <br>
@@ -181,21 +188,35 @@ def editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, enotes):
                 <label>Comments</label>
                 <input type="text" name="newsongnotes" class="form-control" value="'''
     
+    modsong6a='''">
+                <span class="help-block"></span>
+            </div>
+            <div class="form-group">
+                <label>Summary</label>
+                <input type="text" name="newsongsummary" class="form-control" value="'''
+    
     modsong7='''">
                 <span class="help-block"></span>
             </div>
             <div class="form-group">
                 <label>Songsheet name (readonly)</label>
                 <input type="text" name="songsheet" class="form-control" value="'''
-    
+
     modsong8='''" readonly>
+                <span class="help-block"></span>
+            </div>
+            <div class="form-group">
+                <label>Mp3file name (readonly)</label>
+                <input type="text" name="mp3file" class="form-control" value="'''
+    
+    modsong9='''" readonly>
                 <span class="help-block"></span>
             </div>
     '''
 
-    modsong9='            <input type="hidden" name="password" value="' + masterpasswd + '">' 
+    modsong10='            <input type="hidden" name="password" value="' + masterpasswd + '">' 
 
-    modsong10='''
+    modsong11='''
             <div class="form-group">
                 <input type="submit" class="btn btn-primary" value="Next">
             </div>
@@ -206,8 +227,8 @@ def editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, enotes):
 
                 
     modhtmlout=modsong1 + addsongapi + modsong2 + esong + modsong3 + elastplayed
-    modhtmlout=modhtmlout + modsong4 + ekey + modsong5 + ekeydiff + modsong6 + enotes
-    modhtmlout=modhtmlout + modsong7 + esongsheet + modsong8 + modsong9 + modsong10
+    modhtmlout=modhtmlout + modsong4 + ekey + modsong5 + ekeydiff + modsong6 + enotes + modsong6a + esummary
+    modhtmlout=modhtmlout + modsong7 + esongsheet + modsong8 + emp3file + modsong9 + modsong10 + modsong11 
     
     return modhtmlout
     
@@ -260,13 +281,18 @@ def lambda_handler(event, context):
         newsong=urllib.parse.unquote_plus(formparams['newsongname'])
         targetfilename = re.sub('[^a-zA-Z0-9 .]', '', newsong)
         targetfilename = targetfilename.replace(" ", "_")
-        targetfilename = targetfilename + "_" + newsongkey + ".pdf"
+        newsongfilekey = newsongkey.replace("#", "sharp")
+        pdftargetfilename = targetfilename + "_" + newsongfilekey + ".pdf"
+        mp3targetfilename = targetfilename + "_" + newsongfilekey + ".mp3"
         newsonglastplayed=formparams['newsonglastplayed']
         newsongkeydiff=urllib.parse.unquote_plus(formparams['newsongkeydiff'])
         newsongnotes=urllib.parse.unquote_plus(formparams['newsongnotes'])
+        newsongsummary=urllib.parse.unquote_plus(formparams['newsongsummary'])
         htmldebug = htmldebug + "newsong: " +  newsong + "<br>newsonglastplayed: " + newsonglastplayed
-        htmldebug = htmldebug + "<br>newsongkey: " + newsongkey + "<br> newsongkeydiff: " + newsongkeydiff + "<br>newsongnotes: " + newsongnotes 
-        htmldebug = htmldebug + "<br>targetfilename: " + targetfilename
+        htmldebug = htmldebug + "<br>newsongkey: " + newsongkey + "<br> newsongkeydiff: " + newsongkeydiff + "<br>newsongnotes: " + newsongnotes
+        htmldebug = htmldebug + "<br>newsongsummary: " + newsongsummary
+        htmldebug = htmldebug + "<br>PDF targetfilename: " + pdftargetfilename
+        htmldebug = htmldebug + "<br>MP3 targetfilename: " + mp3targetfilename
         
         response = songtable.put_item(
         Item={
@@ -274,36 +300,77 @@ def lambda_handler(event, context):
             'Lastplayed': newsonglastplayed,
             'Key': newsongkey,
             'Keydiff': newsongkeydiff,
-            'Songsheet': targetfilename,
-            'Notes': newsongnotes
+            'Songsheet': pdftargetfilename,
+            'Mp3file': mp3targetfilename,
+            'Notes': newsongnotes,
+            'Summary': newsongsummary
+            }
+        )
+        
+        #write post-change to the song history table
+        timenow = datetime.now(gettz('Pacific/Auckland')).strftime('%Y-%m-%d %H:%M:%S')
+        timenownum = datetime.now(gettz('Pacific/Auckland')).strftime('%s')
+        response2 = songhisttable.put_item(
+        Item={
+            'Song-Lastplaydate': newsong + "|" + str(timenow),
+            'Lastplayed': newsonglastplayed,
+            'Key': newsongkey,
+            'Keydiff': newsongkeydiff,
+            'Songsheet': pdftargetfilename,
+            'Mp3file': mp3targetfilename,
+            'Notes': newsongnotes,
+            'Song': newsong,
+            'Summary': newsongsummary,
+            'Timechange': str(timenow),
+            'Changetype': 'edit',
+            'Timechangenum': timenownum
             }
         )
 
+        #form data is for songsheet upload
         # 5242880 = 5mb
         form_data = s3_client.generate_presigned_post(
             Bucket= bucketname,
-            Key= targetfilename,
+            Key= pdftargetfilename,
+            Conditions=[
+                ["content-length-range", 10, max_file_size]
+            ],
+            ExpiresIn = 3600)
+
+        songsheetformdata=''
+        print(form_data)
+        for k, v in form_data['fields'].items():
+            songsheetformdata=songsheetformdata + '             <input type="hidden" name="' + k + '" value="' + v + '" />\n'
+
+        #form_data2 is for mp3file upload
+        form_data2 = s3_client.generate_presigned_post(
+            Bucket= bucketname,
+            Key= mp3targetfilename,
             Conditions=[
                 ["content-length-range", 10, max_file_size]
             ],
             ExpiresIn = 3600)
         
-        htmlformdata=''
-        print(form_data)
-        for k, v in form_data['fields'].items():
-            htmlformdata=htmlformdata + '             <input type="hidden" name="' + k + '" value="' + v + '" />\n'
+        mp3fileformdata=''
+        print(form_data2)
+        for k, v in form_data2['fields'].items():
+            mp3fileformdata=mp3fileformdata + '             <input type="hidden" name="' + k + '" value="' + v + '" />\n'
         
-        htmlfilesize="                <br><h4>&nbsp;&nbsp;Select file to upload (max " + str(float(max_file_size) / 1024) + " kb) </h4>"
+        uploadpdf="                <br><h4>&nbsp;&nbsp;Select pdf file to upload (max " + str(float(max_file_size) / 1024) + " kb) </h4>"
+        uploadmp3="                <br><h4>&nbsp;&nbsp;Select mp3 file to upload (max " + str(float(max_file_size) / 1024) + " kb) </h4>"
         
-        htmlend='''<br>
+        formend='''<br>
                 &nbsp;&nbsp;<input type="file"   name="file" /> 
                 <br><br>
                 &nbsp&nbsp;<input type="submit" name="submit" value="Upload to object storage" />
             </form>
             
         '''
-            
-        html = htmlstart + formstart1 + htmlformdata + htmlfilesize + htmlend + songlistlogin1 + songlistapi + songlistlogin2 + masterpasswd + songlistlogin3 + htmldebug + '<br></html>'
+        
+        #first the songsheet form, then mp3file form, then code to get back to the songlist, then htmldebut
+        html = htmlstart + formstart1 + songsheetformdata + uploadpdf + formend + '<br>'
+        html =      html + formstart1 + mp3fileformdata   + uploadmp3 + formend + '<br>' 
+        html = html + songlistlogin1 + songlistapi + songlistlogin2 + masterpasswd + songlistlogin3 + htmldebug + '<br></html>'
     
     elif ( formtype == 'editsongform'):
         esong=urllib.parse.unquote_plus(formparams['song'])
@@ -311,15 +378,47 @@ def lambda_handler(event, context):
         ekey=urllib.parse.unquote_plus(formparams['key'])
         ekeydiff=urllib.parse.unquote_plus(formparams['keydiff'])
         esongsheet=formparams['songsheet']
+        tmpfilename = re.sub('[^a-zA-Z0-9 .]', '', esong)
+        tmpfilename = tmpfilename.replace(" ", "_")
+        efilekey = ekey.replace("#", "sharp")
+        emp3file = tmpfilename + "_" + efilekey + ".mp3"
         enotes=urllib.parse.unquote_plus(formparams['notes'])
-        #html = htmlstart + "<br>song: " + esong + "<br>lastplayed: " + elastplayed + "<br>key: " + ekey + "<br>keydiff: " + ekeydiff + "<br>songsheet: " + esongsheet + "<br>notes: " + enotes
-        htmledsong=editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, enotes)
+        esummary=urllib.parse.unquote_plus(formparams['summary'])
+        #write pre-change to song history table
+        timenow = datetime.now(gettz('Pacific/Auckland')).strftime('%Y-%m-%d %H:%M:%S')
+        timenownum = datetime.now(gettz('Pacific/Auckland')).strftime('%s')
+        response3 = songhisttable.put_item(
+        Item={
+            'Song-Lastplaydate': esong + "|" + str(timenow),
+            'Lastplayed': elastplayed,
+            'Key': ekey,
+            'Keydiff': ekeydiff,
+            'Songsheet': esongsheet,
+            'Mp3file': emp3file,
+            'Notes': enotes,
+            'Song': esong,
+            'Summary': esummary,
+            'Timechange': str(timenow),
+            'Timechangenum': timenownum
+            }
+        )
+        htmledsong=editsong(esong, elastplayed, ekey, ekeydiff, esongsheet, emp3file, enotes, esummary)
         html=htmlstart + htmledsong
 
     elif ( formtype == 'delsongform'):
         delsong=urllib.parse.unquote_plus(formparams['song'])
+        dellastplayed=urllib.parse.unquote_plus(formparams['lastplayed'])
+        delkey=urllib.parse.unquote_plus(formparams['key'])
+        delkeydiff=urllib.parse.unquote_plus(formparams['keydiff'])
         delsongsheet=formparams['songsheet']
-        #html = htmlstart + "<br>song: " + esong + "<br>lastplayed: " + elastplayed + "<br>key: " + ekey + "<br>keydiff: " + ekeydiff + "<br>songsheet: " + esongsheet + "<br>notes: " + enotes
+        tmpfilename = re.sub('[^a-zA-Z0-9 .]', '', delsong)
+        tmpfilename = tmpfilename.replace(" ", "_")
+        delfilekey = delkey.replace("#", "sharp")
+        delmp3file = tmpfilename + "_" + delfilekey + ".mp3"
+        delnotes=urllib.parse.unquote_plus(formparams['notes'])
+        delsummary=urllib.parse.unquote_plus(formparams['summary'])
+
+
         response = songtable.delete_item(
         Key={
             'Song': delsong,
@@ -327,11 +426,27 @@ def lambda_handler(event, context):
             }
         )
         htmldebug=json.dumps(response)
+        timenow = datetime.now(gettz('Pacific/Auckland')).strftime('%Y-%m-%d %H:%M:%S')
+        timenownum = datetime.now(gettz('Pacific/Auckland')).strftime('%s')
+        response4 = songhisttable.put_item(
+        Item={
+            'Song-Lastplaydate': delsong + "|" + str(timenow),
+            'Lastplayed': dellastplayed,
+            'Key': delkey,
+            'Keydiff': delkeydiff,
+            'Songsheet': delsongsheet,
+            'Mp3file': delmp3file,
+            'Notes': delnotes,
+            'Song': delsong,
+            'Summary': delsummary,
+            'Timechange': str(timenow),
+            'Changetype': 'delete',
+            'Timechangenum': timenownum
+            }
+        )
         html=htmlstart  + songlistlogin1 + songlistapi + songlistlogin2 + masterpasswd + songlistlogin3 + htmldebug + '<br></html>'
         
     else:
-        #html = htmlstart + str({textwrap.indent(input_fields, ' ' * 12)}) + htmlend
-        #htmlpsk=displaypsk()
         html = htmlstart +  addsong1 + addsongapi + addsong2 + addsong3 + addsong4 
 
     return {
