@@ -32,13 +32,27 @@ def lambda_handler(event, context):
     filereq = event['rawPath']
     filereqn=filereq[1:]
     base64line=""
-    if ('.htm' in filereq) or ('.js' in filereq):
+    if ('.htm' in filereq) or ('.html' in filereq):
         reads3out=readhtmlfile(filereqn)
         html=reads3out
         return {
             "statusCode": 200,
             'headers': { 'Content-Type': 'text/html' },
             'body': html
+        }
+    elif ('.js' in filereq):
+        reads3out=readhtmlfile(filereqn)
+        html=reads3out
+        return {
+            "statusCode": 200,
+            'headers': { 'Content-Type': 'text/javascript' }
+        }
+    elif ('.css' in filereq):
+        reads3out=readhtmlfile(filereqn)
+        html=reads3out
+        return {
+            "statusCode": 200,
+            'headers': { 'Content-Type': 'text/css' }
         }
     elif ('.jpg' in filereq) or ('.jpeg' in filereq):
         reads3out=readbinfile(filereqn) 
