@@ -46,6 +46,7 @@ def lambda_handler(event, context):
         return {
             "statusCode": 200,
             'headers': { 'Content-Type': 'text/javascript' }
+            'body': html
         }
     elif ('.css' in filereq):
         reads3out=readhtmlfile(filereqn)
@@ -53,6 +54,7 @@ def lambda_handler(event, context):
         return {
             "statusCode": 200,
             'headers': { 'Content-Type': 'text/css' }
+            'body': html
         }
     elif ('.jpg' in filereq) or ('.jpeg' in filereq):
         reads3out=readbinfile(filereqn) 
